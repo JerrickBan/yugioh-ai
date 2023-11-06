@@ -190,7 +190,7 @@ while(not done):
 ################################################################################
 
 player = Player(deck)
-bot = Bot(deck)
+bot = Bot(ai_deck)
 
 g = Game(player,bot)
 g.start()
