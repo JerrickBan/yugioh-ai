@@ -2,7 +2,7 @@
 import csv
 import random
 import os
-from classes import BoardState, Phase, MonsterCard, Deck, Actions, Turn, CardData, PlayGame
+from classes import Deck, CardData, Player, Bot, Game
 
 
 ################################################################################
@@ -185,8 +185,17 @@ while(not done):
             deck.print_deck()
         
 
+################################################################################
+#################### START GAME ################################################
+################################################################################
 
-print("Complete!")
+player = Player(deck)
+bot = Bot(deck)
+
+g = Game(player,bot)
+g.start()
+g.play()
+
 # index = 0
 # os.system("clear")
 # print(f"Cards with Attribute {t}\nn: next\np: previous\na: add to deck\nr [name] to remove from deck\nr: ready")
