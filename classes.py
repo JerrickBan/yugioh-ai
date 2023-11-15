@@ -7,6 +7,10 @@ import csv
 import time
 import sys
 
+PLAYER_WIN = 1
+OPPONENT_WIN = 0
+NO_RESULT = None
+
 class Phase:
     def __init__(self, val, next=None):
         self.val = val
@@ -82,134 +86,6 @@ class Phases:
 
 
 
-
-
-
-
-# class Actions:
-#     def __init__(self):
-#         self.num_norm_sum = 0
-#         self.norm_sum_limit = 1
-
-#     def normal_summon():
-#         pass
-
-#     def normal_set():
-#         pass
-
-#     def tribute_summon():
-#         pass
-
-#     def tribute_set():
-#         pass
-
-#     def activate_spell():
-#         pass
-
-#     def set_spell_trap():
-#         pass
-
-#     def check_player_grave():
-#         pass
-
-#     def check_opponent_grave():
-#         pass
-
-
-# class BoardState:
-#     def __init__(self):
-#         self.om = [None,None,None,None,None] # monster zones
-#         self.ost = [None,None,None,None,None] # spell/trap zones
-#         self.oh = set() # Opponent hand
-#         self.og = set() # graveyard
-#         self.ob = set() # banished
-#         self.of = None # field spell
-#         self.pm = [None,None,None,None,None]
-#         self.pst = [None,None,None,None,None]
-#         self.ph = set()
-#         self.pg = set()
-#         self.pb = set()
-#         self.pf = None
-
-    # def print_board_simple(self,)
-
-    # def print_board(self, phase, turn, plp, olp, player):
-    #     os.system('clear')
-    #     print(f"\n{' ':25}{len(self.oh)} cards in OPPONENT's hand\n")
-    #     divider = '|----------|----------|----------|----------|----------|----------|----------|\n'
-    #     empty = "|          "
-    #     grave = '|   grave  '
-    #     deck = '|   deck   '
-    #     field = '|   field  '
-    #     banish = '|  banish  '
-
-    #     ## OPPONENT SIDE
-    #     print(divider)
-    #     print(deck, end='')
-    #     for card in self.ost:
-    #         if card:
-    #             print(f"|{card.name:10}", end="")
-    #         else:
-    #             print(empty, end="")
-    #     print(banish,end="")
-    #     print('|\n')
-    #     print(divider)
-    #     print(grave, end='')
-    #     for card in self.om:
-    #         if card:
-    #             print(f"|{card:5}", end="")
-    #         else:
-    #             print(empty, end="")
-    #     print(field, end="")
-    #     print('|\n')
-    #     print(divider)
-
-    #     print(f"\n{' ':50}OPPONENT'S Life Points: {olp}\n")
-    #     print(f'\n{" ":20}{player.name} {phase.name} PHASE {" ":13} Turn: {turn}{" ":13}\n')
-
-    #     print(f"\nYOUR Life Points: {plp}\n")
-    #     ## PLAYER SIDE
-    #     print(divider)
-    #     print(field, end="")
-    #     for card in self.pst:
-    #         if card:
-    #             print(f"|{card:5}", end="")
-    #         else:
-    #             print(empty, end="")
-    #     print(grave, end='')
-    #     print('|\n')
-    #     print(divider)
-    #     print(banish, end="")
-    #     for card in self.pm:
-    #         if card:
-    #             print(f"|{card:5}", end="")
-    #         else:
-    #             print(empty, end="")
-    #     print(deck, end='')
-    #     print('|\n')
-    #     print(divider)
-
-    #     print(f'\n{" ":10}YOUR hand: {",".join(self.ph)}\n')
-        
-
-
-# class PlayGame:
-#     def __init__(self, player_deck: Deck, opponent_deck: Deck):
-#         self.pdeck = player_deck
-#         self.odeck = opponent_deck
-#         self.lp = 4000 #life points
-#         self.olp = 4000
-#         self.turn = 1
-#         self.active = Turn.YOUR
-#         self.phase = Phase.DRAW
-#         self.b = BoardState()
-
-#         def start_game(self):
-#             self.active = Turn(random.choice([0,1])) # select starting player
-
-
-
-
 #############################################################################################
 #############################  IMPLEMENTED  #################################################
 #############################################################################################
@@ -268,7 +144,7 @@ class MonsterCard:
     def __str__(self):
         if self.pos == Pos.ATK: position = 'ATK'
         else: position = 'DEF'
-        return f"{self.name} | LV: {self.level}, ATK: {self.atk}, DEF: {self.defense}, POS:{position} "
+        return f"{self.name} ({self.level}*,{self.atk}/{self.defense},POS:{position},Face:{self.face.name})"
 
 class Deck:
 
@@ -432,7 +308,7 @@ class Player:
         for c in tributed_mons:
             self.grave.add(c)
     
-    def normal(self, card, position, tribute, phase, player, bot):
+    def normal(self, card, position, tribute, phase, player, bot): 
         if position == Pos.ATK:
             card.face = Face.Up
             card.pos = Pos.ATK
@@ -449,6 +325,8 @@ class Player:
         Returns 'Both' 0 if both are destroyed
         Returns None # if nothing is destroyed but damage is taken by attacker
         '''
+        if attacking.pos == Pos.DEF:
+            return None, -1
         if defending.pos == Pos.ATK:
             if attacking.atk > defending.atk:
                 return 'D', attacking.atk - defending.atk
@@ -564,7 +442,6 @@ class Player:
             os.system("clear")
             phase.display(player, bot)
 
-    # TODO
     def battle_phase(self, phase: Phases, player, bot):
         phase.next_phase()
         os.system("clear")
@@ -577,14 +454,17 @@ class Player:
                 print("Choose Attacking Monster")
                 i, c = self.choose_board_card()
 
-                #### HAS TO BE ATTACK POSITION MONSTER
-
-                ### SKIP FIRST BATTLE PHASE
-
                 ### END GAME EARLY WHEN YOU OR OPPONENT REACHES 0 LP
 
                 if not c:
                     print("Card is not board")
+                    time.sleep(2)
+                    os.system("clear")
+                    phase.display(player, bot)
+                    continue
+
+                if c.pos == Pos.DEF:
+                    print("Card has to be in ATK position")
                     time.sleep(2)
                     os.system("clear")
                     phase.display(player, bot)
@@ -608,6 +488,14 @@ class Player:
                     i = index - 1
                     target = bot.board[i]
                     destroyed, dmg = self.damage_calc(c, target)
+
+                    # error check (def pos monsters can't attack)
+                    if dmg == -1:
+                        print("Monster has to be in attack position to attack")
+                        time.sleep(2)
+                        os.system("clear")
+                        phase.display(player, bot)
+                        continue
 
                     c.attacks += 1
 
@@ -635,6 +523,12 @@ class Player:
                     os.system("clear")
                     phase.display(player, bot)
 
+            if self.life <= 0:
+                return OPPONENT_WIN
+            if bot.life <= 0:
+                return PLAYER_WIN
+
+
             elif action == '2': # Next Phase
                 break
 
@@ -642,13 +536,14 @@ class Player:
     def end_phase(self, phase: Phases, player, bot):
         phase.next_phase()
         os.system("clear")
-        if self.life <= 0:
-            return 0
-        
+        # if self.life <= 0:
+        #     return OPPONENT_WIN
+        # if bot.life <= 0:
+            # return PLAYER_WIN
         phase.display(player, bot)
         time.sleep(3)
         phase.next_phase()
-        return 1
+        return NO_RESULT
     
         
 
@@ -666,15 +561,223 @@ class Bot(Player):
     def __init__(self, deck: Deck):
         super().__init__(deck)
 
+    def is_summonable(self, card: MonsterCard) -> bool:
+        if card.level <= 4: return True
+        if card.level > 4 and card.level <=6 and len(self.board) >= 1: return True
+        if card.level > 6 and len(self.board) >= 2: return True
+        return False
+    
+    def num_tributes(self, card: MonsterCard) -> int:
+        if card.level > 4 and card.level <=6: return 1
+        if card.level > 6: return 2
+
+    def num_tribute_mons_hand(self):
+        cnt = 0
+        for card in self.hand:
+            if card.level > 4:
+                cnt+=1
+        return cnt
+
+    def num_non_tribute_mons_hand(self):
+        cnt = 0
+        for card in self.hand:
+            if card.level <= 4:
+                cnt+=1
+        return cnt
+
+    def greater_atk(self, botcard: MonsterCard, playercard: MonsterCard):
+        return True if botcard.atk > playercard.atk else False
+    
+    def greater_def(self, botcard: MonsterCard, playercard: MonsterCard):
+        return True if botcard.defense > playercard.defense else False
+    
+    def bot_board_card_with_smallest_atk(self):
+        if len(self.board) == 0:
+            return None
+        smallest = self.board[0]
+        for c in self.board:
+            if c.atk < smallest.atk:
+                smallest = c
+        return smallest
+    
+    def bot_board_card_with_smallest_def(self):
+        if len(self.board) == 0:
+            return None
+        smallest = self.board[0]
+        for c in self.board:
+            if c.defense < smallest.defense:
+                smallest = c
+        return smallest
+
+    def bot_board_card_with_largest_atk(self):
+        if len(self.board) == 0:
+            return None
+        largest = self.board[0]
+        for c in self.board:
+            if c.atk > largest.atk:
+                largest = c
+        return largest
+
+    def bot_board_card_with_largest_def(self):
+        if len(self.board) == 0:
+            return None
+        largest = self.board[0]
+        for c in self.board:
+            if c.defense > largest.defense:
+                largest = c
+        return largest
+
+    def bot_hand_card_with_largest_atk(self):
+        if len(self.hand) == 0:
+            return None
+        largest = self.hand[0]
+        for c in self.hand:
+            if c.atk > largest.atk:
+                largest = c
+        return largest
+
+    def bot_hand_card_with_largest_def(self):
+        if len(self.hand) == 0:
+            return None
+        largest = self.hand[0]
+        for c in self.hand:
+            if c.defense > largest.defense:
+                largest = c
+        return largest
+
+    def change_to_def(self, botcard: MonsterCard):
+        botcard.pos = Pos.DEF
+
+    def change_to_atk(self, botcard: MonsterCard):
+        botcard.pos = Pos.ATK
+
+    def strongest_player_card_value(self, player: Player) -> int:
+        if len(player.board) == 0:
+            return 0
+        largest = 0
+        for c in player.board:
+            if c.pos == Pos.ATK and c.atk > largest: 
+                largest = c.atk
+            elif c.pos == Pos.DEF and c.defense > largest:
+                largest = c.defense
+        return largest
+
+    def num_player_mons(self, player: Player):
+        return len(player.board)
+
+    def normal_summon(self, card, tribute):
+        self.hand.remove(card)
+        if tribute == 0:
+            card.pos = Pos.ATK
+            card.face = Face.Up
+            self.board.append(card)
+        else:
+            tributed_list = set()
+            for _ in range(tribute):
+                c = self.bot_board_card_with_smallest_atk()
+                self.board.remove(c)
+                tributed_list.add(c)
+            for t in tributed_list:
+                self.grave.add(t)
+            self.board.append(card)
+
+    def normal_set(self, card, tribute):
+        self.hand.remove(card)
+        if tribute == 0:
+            card.pos = Pos.DEF
+            card.face = Face.Down
+            self.board.append(card)
+        else:
+            tributed_list = set()
+            for _ in range(tribute):
+                c = self.bot_board_card_with_smallest_def()
+                self.board.remove(c)
+                tributed_list.add(c)
+            for t in tributed_list:
+                self.grave.add(t)
+            self.board.append(card)
+
+    def bot_summon(self, phase:Phases, player:Player, bot:Player):
+        strongest_player_card = self.strongest_player_card_value(player)
+        strongest_bot_field_atk = self.bot_board_card_with_largest_atk()
+        strongest_bot_field_def = self.bot_board_card_with_largest_def()
+        strongest_bot_hand_atk = self.bot_hand_card_with_largest_atk()
+        strongest_bot_hand_def = self.bot_hand_card_with_largest_def() 
+
+        # if the strongest bot card is in the hand and can be summoned, summon it
+        if strongest_bot_hand_atk > strongest_bot_field_atk and self.is_summonable(strongest_bot_hand_atk):
+            self.normal_summon(strongest_bot_hand_atk, self.num_tributes(strongest_bot_hand_atk))
+
+        
+        # GO ALL ATTACK IF STRONGER THAN STRONGEST OPPONENT CARD
+        
+        
+
+        # GO ALL DEFENSE IF WEAKER THAN STRONGEST OPPONENT CARD
+
+        pass
+        
+
     # TODO
-    def main_phase(self, phase: Phases, player, bot):
+    def main_phase(self, phase:Phases, player:Player, bot:Player):
+        '''
+        GOALS:
+        - Wipe out player's strongest cards
+        - More cards on field better than less but stronger cards on field
+        - Play defensively and Protect Life Points
+
+
+        if player board has no monsters:
+            if board not full and you have a 4* or lower, 
+                summon highest attack one
+            else if you have 5* + monster and if the total atk after it's summoned > total atk before,
+                summon it by tributing weakest monsters
+            change all monsters to attack position
+            start battle phase
+        
+        COMPARING TO PLAYER'S STRONGEST VALUE ON THEIR BOARD (either atk or defense)
+
+        if bot board has a higher atk monster on the board:
+            if player board <= 1 monster:
+                if board isn't full and you have a 4* or lower in hand:
+                    normal summon a 4* or lower monster with highest atk
+                all to attack position
+            else:
+                if board isn't full and you have a 4* or lower in hand:
+                    normal set a 4* or lower monster with highest def
+                change all to def position besides strongest monster
+            battle phase
+
+        if bot board doesn't have a higher atk monster on the board:
+            filter for summonable monsters in hand (check if board is full too)
+            if there is monster with more atk in hand
+                normal summon it
+                if player board <= 1 monster:
+                    change all to atk
+                else
+                    change rest to def
+                battle
+            else
+                if there is monster with more def in hand
+                    normal set it
+                else if there is a 4* or lower in hand
+                    normal set the one with lowest def (body block)
+                change all to def
+                end turn
+        '''
         phase.next_phase()
+        self.bot_summon(self)
         os.system("clear")
         phase.display(player, bot)
         time.sleep(3)
 
     # TODO
     def battle_phase(self, phase: Phases, player, bot):
+        '''
+        1. Sort all attack position monsters by atk value
+        2. Sort the monsters on opponent field by attack/defense
+        3. Attack using the strongest monster on the strongest opposing monster, and so on
+        '''
         phase.next_phase()
         os.system("clear")
         phase.display(player, bot)
@@ -695,46 +798,201 @@ class Game:
     def play(self):
         os.system("clear")
         while(1):
-            lose = self.play_turn()
-            if lose:
-                if self.phase.turn == Turn.YOUR:
-                    print("YOU LOSE!!")
-                    break
-                else:
-                    print("YOU WIN!!")
-                    break
-            
+            res = self.play_turn()
+            if res == OPPONENT_WIN:
+                os.system("clear")
+                print("YOU LOSE!!")
+                break
+            elif res == PLAYER_WIN:
+                os.system("clear")
+                print("YOU WIN!!")
+                break
+
             self.phase.switch_turn()
 
 
     def play_turn(self):
-        # Player's Turn
+        done = None
+
+        #################
+        # Player's Turn #
+        #################
         if self.phase.turn == Turn.YOUR:
+            # Draw
             if self.phase.turn_num != 1:
                 if not self.player.draw_phase(self.phase, self.player, self.bot):
                     return 1
             else:
                 self.phase.display(self.player, self.bot)
                 time.sleep(3)
+            # Standby
             self.player.standby_phase(self.phase, self.player, self.bot)
+            # Main
             self.player.main_phase(self.phase, self.player, self.bot)
-            self.player.battle_phase(self.phase, self.player, self.bot)
-            if not self.player.end_phase(self.phase, self.player, self.bot):
-                return 1
-
-        # AI's Turn
+            # Battle
+            if self.phase.turn_num != 1:
+                done = self.player.battle_phase(self.phase, self.player, self.bot)
+            else:
+                self.phase.next_phase()
+            if done != None:
+                return done
+            # End
+            self.player.end_phase(self.phase, self.player, self.bot)
+    
+        #############
+        # AI's Turn #
+        #############
         else:
+            # Draw
             if self.phase.turn_num != 1:
                 if not self.bot.draw_phase(self.phase, self.player, self.bot):
                     return 1
             else:
                 self.phase.display(self.player, self.bot)
                 time.sleep(3)
+            # Standby
             self.bot.standby_phase(self.phase, self.player, self.bot)
+            # Main
             self.bot.main_phase(self.phase, self.player, self.bot)
-            self.bot.battle_phase(self.phase, self.player, self.bot)
-            if not self.bot.end_phase(self.phase, self.player, self.bot):
-                return 1
+            # Battle
+            if self.phase.turn_num != 1:
+                done = self.bot.battle_phase(self.phase, self.player, self.bot)
+            else:
+                self.phase.next_phase()
+            if done != None:
+                return done
+            # End
+            self.bot.end_phase(self.phase, self.player, self.bot) 
+
+
+
+
+######################################################
+############## DIRTY CODE ############################
+######################################################
+
+
+
+# class Actions:
+#     def __init__(self):
+#         self.num_norm_sum = 0
+#         self.norm_sum_limit = 1
+
+#     def normal_summon():
+#         pass
+
+#     def normal_set():
+#         pass
+
+#     def tribute_summon():
+#         pass
+
+#     def tribute_set():
+#         pass
+
+#     def activate_spell():
+#         pass
+
+#     def set_spell_trap():
+#         pass
+
+#     def check_player_grave():
+#         pass
+
+#     def check_opponent_grave():
+#         pass
+
+
+# class BoardState:
+#     def __init__(self):
+#         self.om = [None,None,None,None,None] # monster zones
+#         self.ost = [None,None,None,None,None] # spell/trap zones
+#         self.oh = set() # Opponent hand
+#         self.og = set() # graveyard
+#         self.ob = set() # banished
+#         self.of = None # field spell
+#         self.pm = [None,None,None,None,None]
+#         self.pst = [None,None,None,None,None]
+#         self.ph = set()
+#         self.pg = set()
+#         self.pb = set()
+#         self.pf = None
+
+    # def print_board_simple(self,)
+
+    # def print_board(self, phase, turn, plp, olp, player):
+    #     os.system('clear')
+    #     print(f"\n{' ':25}{len(self.oh)} cards in OPPONENT's hand\n")
+    #     divider = '|----------|----------|----------|----------|----------|----------|----------|\n'
+    #     empty = "|          "
+    #     grave = '|   grave  '
+    #     deck = '|   deck   '
+    #     field = '|   field  '
+    #     banish = '|  banish  '
+
+    #     ## OPPONENT SIDE
+    #     print(divider)
+    #     print(deck, end='')
+    #     for card in self.ost:
+    #         if card:
+    #             print(f"|{card.name:10}", end="")
+    #         else:
+    #             print(empty, end="")
+    #     print(banish,end="")
+    #     print('|\n')
+    #     print(divider)
+    #     print(grave, end='')
+    #     for card in self.om:
+    #         if card:
+    #             print(f"|{card:5}", end="")
+    #         else:
+    #             print(empty, end="")
+    #     print(field, end="")
+    #     print('|\n')
+    #     print(divider)
+
+    #     print(f"\n{' ':50}OPPONENT'S Life Points: {olp}\n")
+    #     print(f'\n{" ":20}{player.name} {phase.name} PHASE {" ":13} Turn: {turn}{" ":13}\n')
+
+    #     print(f"\nYOUR Life Points: {plp}\n")
+    #     ## PLAYER SIDE
+    #     print(divider)
+    #     print(field, end="")
+    #     for card in self.pst:
+    #         if card:
+    #             print(f"|{card:5}", end="")
+    #         else:
+    #             print(empty, end="")
+    #     print(grave, end='')
+    #     print('|\n')
+    #     print(divider)
+    #     print(banish, end="")
+    #     for card in self.pm:
+    #         if card:
+    #             print(f"|{card:5}", end="")
+    #         else:
+    #             print(empty, end="")
+    #     print(deck, end='')
+    #     print('|\n')
+    #     print(divider)
+
+    #     print(f'\n{" ":10}YOUR hand: {",".join(self.ph)}\n')
+        
+
+
+# class PlayGame:
+#     def __init__(self, player_deck: Deck, opponent_deck: Deck):
+#         self.pdeck = player_deck
+#         self.odeck = opponent_deck
+#         self.lp = 4000 #life points
+#         self.olp = 4000
+#         self.turn = 1
+#         self.active = Turn.YOUR
+#         self.phase = Phase.DRAW
+#         self.b = BoardState()
+
+#         def start_game(self):
+#             self.active = Turn(random.choice([0,1])) # select starting player
 
     
     # def play_turn(self,turn):
