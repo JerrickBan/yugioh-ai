@@ -651,16 +651,20 @@ class Bot(Player):
     def change_to_atk(self, botcard: MonsterCard):
         botcard.pos = Pos.ATK
 
-    def strongest_player_card_value(self, player: Player) -> int:
+    def strongest_player_card_value(self, player: Player) -> [int, MonsterCard]:
         if len(player.board) == 0:
             return 0
         largest = 0
+        card = None
+
         for c in player.board:
             if c.pos == Pos.ATK and c.atk > largest: 
                 largest = c.atk
+                card = c
             elif c.pos == Pos.DEF and c.defense > largest:
                 largest = c.defense
-        return largest
+                card = c
+        return largest, card
 
     def num_player_mons(self, player: Player):
         return len(player.board)
@@ -696,27 +700,6 @@ class Bot(Player):
             for t in tributed_list:
                 self.grave.add(t)
             self.board.append(card)
-
-    def bot_summon(self, phase:Phases, player:Player, bot:Player):
-        strongest_player_card = self.strongest_player_card_value(player)
-        strongest_bot_field_atk = self.bot_board_card_with_largest_atk()
-        strongest_bot_field_def = self.bot_board_card_with_largest_def()
-        strongest_bot_hand_atk = self.bot_hand_card_with_largest_atk()
-        strongest_bot_hand_def = self.bot_hand_card_with_largest_def() 
-
-        # if the strongest bot card is in the hand and can be summoned, summon it
-        if strongest_bot_hand_atk > strongest_bot_field_atk and self.is_summonable(strongest_bot_hand_atk):
-            self.normal_summon(strongest_bot_hand_atk, self.num_tributes(strongest_bot_hand_atk))
-
-        
-        # GO ALL ATTACK IF STRONGER THAN STRONGEST OPPONENT CARD
-        
-        
-
-        # GO ALL DEFENSE IF WEAKER THAN STRONGEST OPPONENT CARD
-
-        pass
-        
 
     # TODO
     def main_phase(self, phase:Phases, player:Player, bot:Player):
@@ -766,8 +749,27 @@ class Bot(Player):
                 end turn
         '''
         phase.next_phase()
-        self.bot_summon(self)
         os.system("clear")
+
+        # get player's strongest card
+        target, player_boss_monster = self.strongest_player_card_value(player)
+
+        #ALGO START
+        if len(player.board) == 0:
+            pass
+
+        # bot strongest atk card on field
+        bot_strong_atk =self.bot_board_card_with_largest_atk()
+
+        if bot_strong_atk.atk > target:
+            pass
+        else:
+            pass
+
+
+
+
+
         phase.display(player, bot)
         time.sleep(3)
 
