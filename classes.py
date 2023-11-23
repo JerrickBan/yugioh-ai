@@ -65,9 +65,9 @@ class Phases:
         print(f"\n\nOPPONENT'S BOARD\n")
         for c in bot.board:
             if c.face == Face.Up:
-                print(c, end="")
+                print(f'{c}   ', end="")
             else:
-                print('?', end="")
+                print(f'?   ', end="")
         print("\n")
         print("------------------------------------------------------------------------")
         print(f'{who} | {self.phase.val} Phase | Turn {self.turn_num} | YOUR LIFE: {player.life} | OPPONENT LIFE: {bot.life}')
@@ -502,15 +502,20 @@ class Player:
                     if destroyed == 'A':
                         player.destroy(c)
                         player.life -= dmg
+                        print(f"{c.name} was Destroyed!\nYou took {dmg} Damage")
                     elif destroyed == 'D':
                         bot.destroy(target)
                         bot.life -= dmg
+                        print(f"{target.name} was Destroyed!\nOpponent took {dmg} Damage")
                     elif destroyed == 'Both':
                         player.destroy(c)
                         bot.destroy(target)
+                        print(f"Both {c.name} and {target.name} were Destroyed")
                     elif not destroyed:
                         player.life -= dmg
+                        print(f"Player took {dmg} Damage")
                     
+                    time.sleep(2)
                     os.system("clear")
                     phase.display(player, bot)
 
@@ -562,7 +567,7 @@ class Bot(Player):
         super().__init__(deck)
 
     def is_summonable(self, card: MonsterCard) -> bool:
-        if card.level <= 4: return True
+        if card.level <= 4 and len(self.board) < self.MAXBOARDLEN: return True
         if card.level > 4 and card.level <=6 and len(self.board) >= 1: return True
         if card.level > 6 and len(self.board) >= 2: return True
         return False
@@ -570,6 +575,7 @@ class Bot(Player):
     def num_tributes(self, card: MonsterCard) -> int:
         if card.level > 4 and card.level <=6: return 1
         if card.level > 6: return 2
+        else: return 0
 
     def num_tribute_mons_hand(self):
         cnt = 0
@@ -585,12 +591,18 @@ class Bot(Player):
                 cnt+=1
         return cnt
 
+    def four_lower_hand(self):
+        return len([c for c in self.hand if c.level <= 4]) > 0
+    
+    def five_above_hand(self):
+        return len([c for c in self.hand if (c.level > 4 and self.is_summonable(c))]) > 0
+
     def greater_atk(self, botcard: MonsterCard, playercard: MonsterCard):
         return True if botcard.atk > playercard.atk else False
     
     def greater_def(self, botcard: MonsterCard, playercard: MonsterCard):
         return True if botcard.defense > playercard.defense else False
-    
+
     def bot_board_card_with_smallest_atk(self):
         if len(self.board) == 0:
             return None
@@ -627,6 +639,40 @@ class Bot(Player):
                 largest = c
         return largest
 
+    def bot_hand_4_lower_with_largest_atk(self):
+        h = [c for c in self.hand if c.level <= 4]
+        largest = h[0]
+        for c in h:
+            if c.atk > largest.atk:
+                largest = c
+        return largest
+    
+    def bot_hand_4_lower_with_largest_def(self):
+        h = [c for c in self.hand if c.level <= 4]
+        largest = h[0]
+        for c in h:
+            if c.defense > largest.defense:
+                largest = c
+        return largest
+    
+    def bot_hand_4_lower_with_smallest_def(self):
+        h = [c for c in self.hand if c.level <= 4]
+        smallest = h[0]
+        for c in h:
+            if c.defense < smallest.defense:
+                smallest = c
+        return smallest
+    
+    def bot_hand_summonable_tribute_with_largest_atk(self):
+        summonable_tributes = [c for c in self.hand if c.level > 4 and self.is_summonable(c)]
+        max_atk = 0
+        card = None
+        for c in summonable_tributes:
+            if c.atk > max_atk:
+                card = c
+                max_atk=c.atk
+        return card
+
     def bot_hand_card_with_largest_atk(self):
         if len(self.hand) == 0:
             return None
@@ -653,11 +699,13 @@ class Bot(Player):
 
     def strongest_player_card_value(self, player: Player) -> [int, MonsterCard]:
         if len(player.board) == 0:
-            return 0
+            return 0, None
         largest = 0
         card = None
 
         for c in player.board:
+            if c.face == Face.Down:
+                continue
             if c.pos == Pos.ATK and c.atk > largest: 
                 largest = c.atk
                 card = c
@@ -669,23 +717,22 @@ class Bot(Player):
     def num_player_mons(self, player: Player):
         return len(player.board)
 
-    def normal_summon(self, card, tribute):
+    def normal_summon(self, card):
+        tribute = self.num_tributes(card)
         self.hand.remove(card)
         if tribute == 0:
             card.pos = Pos.ATK
             card.face = Face.Up
             self.board.append(card)
         else:
-            tributed_list = set()
-            for _ in range(tribute):
-                c = self.bot_board_card_with_smallest_atk()
+            tribute_selections = self.find_n_weakes_monsters_atk_board(tribute)
+            for c in tribute_selections:
                 self.board.remove(c)
-                tributed_list.add(c)
-            for t in tributed_list:
-                self.grave.add(t)
+                self.grave.add(c)
             self.board.append(card)
 
-    def normal_set(self, card, tribute):
+    def normal_set(self, card):
+        tribute = self.num_tributes(card)
         self.hand.remove(card)
         if tribute == 0:
             card.pos = Pos.DEF
@@ -701,6 +748,59 @@ class Bot(Player):
                 self.grave.add(t)
             self.board.append(card)
 
+    def change_all_defense(self, exceptions=set()):
+        for c in self.board:
+            if c not in exceptions and c.pos == Pos.ATK and not c.just_summoned:
+                c.pos = Pos.DEF
+
+    def change_all_attack(self, exceptions=set()):
+        for c in self.board:
+            if c not in exceptions and c.pos == Pos.DEF and not c.just_summoned:
+                c.pos = Pos.ATK
+                c.face = Face.Up
+
+    def total_atk_on_board(self):
+        atk = 0
+        for c in self.board:
+            atk+=c.atk
+        return atk
+
+    def find_n_weakes_monsters_atk_board(self, n):
+        board_sorted = sorted(self.board, key=lambda x: x.atk)
+        if n > len(board_sorted):
+            return []
+        return board_sorted[:n+1]
+
+    def total_attack_increase(self, monster):
+        tributes = self.num_tributes(monster)
+        tribute_candidates = self.find_n_weakes_monsters_atk_board(tributes)
+        total_curr_atk = self.total_atk_on_board()
+        atk_minus = sum([c.atk for c in tribute_candidates])
+        atk_plus = monster.atk
+        new_atk = total_curr_atk - atk_minus + atk_plus
+        return new_atk > total_curr_atk
+
+    def tribute_set(self, monster):
+        pass
+
+    def summonable_mons(self):
+        return [c for c in self.hand if self.is_summonable(c)]
+
+    def summonable_monster_with_greater_atk(self, target):
+        mons = self.summonable_mons()
+        for c in mons:
+            if c.atk > target:
+                return c
+        return None
+    
+    def summonable_monster_with_greater_def(self, target):
+        mons = self.summonable_mons()
+        for c in mons:
+            if c.defense > target:
+                return c
+        return None
+
+
     # TODO
     def main_phase(self, phase:Phases, player:Player, bot:Player):
         '''
@@ -708,70 +808,100 @@ class Bot(Player):
         - Wipe out player's strongest cards
         - More cards on field better than less but stronger cards on field
         - Play defensively and Protect Life Points
-
-
-        if player board has no monsters:
-            if board not full and you have a 4* or lower, 
-                summon highest attack one
-            else if you have 5* + monster and if the total atk after it's summoned > total atk before,
-                summon it by tributing weakest monsters
-            change all monsters to attack position
-            start battle phase
-        
-        COMPARING TO PLAYER'S STRONGEST VALUE ON THEIR BOARD (either atk or defense)
-
-        if bot board has a higher atk monster on the board:
-            if player board <= 1 monster:
-                if board isn't full and you have a 4* or lower in hand:
-                    normal summon a 4* or lower monster with highest atk
-                all to attack position
-            else:
-                if board isn't full and you have a 4* or lower in hand:
-                    normal set a 4* or lower monster with highest def
-                change all to def position besides strongest monster
-            battle phase
-
-        if bot board doesn't have a higher atk monster on the board:
-            filter for summonable monsters in hand (check if board is full too)
-            if there is monster with more atk in hand
-                normal summon it
-                if player board <= 1 monster:
-                    change all to atk
-                else
-                    change rest to def
-                battle
-            else
-                if there is monster with more def in hand
-                    normal set it
-                else if there is a 4* or lower in hand
-                    normal set the one with lowest def (body block)
-                change all to def
-                end turn
         '''
         phase.next_phase()
         os.system("clear")
 
         # get player's strongest card
-        target, player_boss_monster = self.strongest_player_card_value(player)
-
-        #ALGO START
+        target, player_strongest = self.strongest_player_card_value(player)
+        
+        # if player's board has no monsters:
         if len(player.board) == 0:
-            pass
+            # if bot's board not full and bot has a 4* or lower monster 
+            if len(self.board) <= self.MAXBOARDLEN and self.four_lower_hand():
+                # summon highest attack one
+                highest_atk_bot_hand = self.bot_hand_4_lower_with_largest_atk()
+                self.normal_summon(highest_atk_bot_hand)
+            # else if you have 5* + summonable monster
+            elif self.five_above_hand():
+                # if the total atk after the strongest one is summoned > total atk before
+                strongest_tributed_mon = self.bot_hand_summonable_tribute_with_largest_atk()
+                if self.total_attack_increase(strongest_tributed_mon):
+                    #summon it by tributing weakest monsters
+                    self.normal_summon(strongest_tributed_mon)
+            # change all monsters to attack position
+            self.change_all_attack()
+            # start battle phase
+            phase.display(player, bot)
+            time.sleep(3)
+            return
 
         # bot strongest atk card on field
         bot_strong_atk =self.bot_board_card_with_largest_atk()
 
-        if bot_strong_atk.atk > target:
-            pass
+        # if bot board has a higher atk monster on the board:
+        if bot_strong_atk and (bot_strong_atk.atk > target):
+            # if player board <= 1 monster:
+            if len(player.board) <= 1:
+                # if board isn't full and you have a 4* or lower in hand:
+                if len(self.board) < self.MAXBOARDLEN and self.four_lower_hand():
+                    # normal summon a 4* or lower monster with highest atk
+                    four_lower_highest_atk = self.bot_hand_4_lower_with_largest_atk()
+                    self.normal_summon(four_lower_highest_atk)
+                # all to attack position
+                self.change_all_attack()
+            # else:
+            else:
+                # if board isn't full and you have a 4* or lower in hand:
+                if len(self.board) < self.MAXBOARDLEN and self.four_lower_hand():
+                    # normal set a 4* or lower monster with highest def
+                    four_lower_highest_def = self.bot_hand_4_lower_with_largest_def()
+                    self.normal_set(four_lower_highest_def)
+                # change all to def position besides strongest monster
+                self.change_all_defense(exceptions={bot_strong_atk})
+            # battle phase
+            phase.display(player, bot)
+            time.sleep(3)
+            return
+
+        # if bot board doesn't have a higher atk monster on the board:
         else:
-            pass
-
-
-
-
-
-        phase.display(player, bot)
-        time.sleep(3)
+            # filter for summonable monsters in hand (check if board is full too)
+            mons = self.summonable_mons()
+            # if there is summonable monster with more atk in hand
+            stronger_mon = self.summonable_monster_with_greater_atk(target)
+            if stronger_mon:
+                # normal summon it
+                self.normal_summon(stronger_mon)
+                # if player board <= 1 monster:
+                if len(player.board) <= 1:
+                    # change all to atk
+                    self.change_all_attack()
+                # else
+                else:
+                    # change rest to def
+                    self.change_all_defense(exceptions={stronger_mon})
+                # battle
+                phase.display(player, bot)
+                time.sleep(3)
+                return
+            # else
+            else:
+                # if there is monster with more def in hand
+                tougher_mon = self.summonable_monster_with_greater_def(target)
+                if tougher_mon:
+                    # normal set it
+                    self.normal_set(tougher_mon)
+                # else if there is a 4* or lower in hand
+                elif self.four_lower_hand() and len(self.board) < self.MAXBOARDLEN:
+                    # normal set the one with lowest def (body block)
+                    weakest_def_mon = self.bot_hand_4_lower_with_smallest_def()
+                    self.normal_set(weakest_def_mon)
+                # change all to def
+                self.change_all_defense()
+                # end turn
+                phase.display(player, bot)
+                time.sleep(3)
 
     # TODO
     def battle_phase(self, phase: Phases, player, bot):
@@ -798,6 +928,7 @@ class Game:
         self.bot.start()
 
     def play(self):
+        self.phase.turn = Turn.OPPONENTS
         os.system("clear")
         while(1):
             res = self.play_turn()

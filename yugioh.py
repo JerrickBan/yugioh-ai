@@ -71,9 +71,9 @@ print("  5. Each player starts with 4000 life points\n")
 print("  6. To win the game, your opponent's life points must reach 0 must or they run out of cards in their deck\n")
 
 
-s = input("Type 'n' to continue to Phase Rules: ")
+s = input("Type 'n' to continue to Main Phase Rules: ")
 while s != 'n':
-    s = input("Type 'n' to continue to Main and Battle Phase Rules: ")
+    s = input("Type 'n' to continue to Main Phase Rules: ")
 
 os.system("clear")
 print("Main Phase Rules:")
@@ -84,9 +84,9 @@ print("  4. You can also choose to normal set a monster in face down defense def
 print("  5. You can change the battle position of each monster max 1 time per turn, except the turn it's summoned.\n    Defense --> Attack and Attack --> Face-Up Defense\n")
 
 
-s = input("Type 'n' to continue: ")
+s = input("Type 'n' to continue to Battle Phase Rules: ")
 while s != 'n':
-    s = input("Type 'n' to continue: ")
+    s = input("Type 'n' to continue to Battle Phase Rules: ")
 
 os.system("clear")
 print("Battle Phase Rules:")
@@ -100,9 +100,9 @@ print("  5. If attacking a face-down defense monster, flip it to face-up defense
 print("  6. You can change the battle position of each monster max 1 time per turn. Defense positions must go to attack and attack must go to face-up defense\n")
 
 
-s = input("Type 'n' to start: ")
+s = input("Type 'n' to enter Deck Building: ")
 while s != 'n':
-    s = input("Type 'n' to start: ")
+    s = input("Type 'n' to enter Deck Building: ")
 
 
 
