@@ -3,6 +3,7 @@ import csv
 import random
 import os
 from classes import Deck, CardData, Player, Bot, Game
+import copy
 
 
 ################################################################################
@@ -167,7 +168,7 @@ while(not done):
         if option == 'q':
             break
         elif option == 'a':
-            deck.add_card(player_cards[index])
+            deck.add_card(copy.deepcopy(player_cards[index]))
         elif option == 'r':
             deck.remove_card(player_cards[index])
         elif option == 'n':
