@@ -169,7 +169,10 @@ class Deck:
     
     def remove_card(self, card):
         if self.card_count[card.name] > 0:
-            self.cards.remove(card)
+            for c in self.cards:
+                if c.name == card.name:
+                    self.cards.remove(c)
+                    break
             self.card_count[card.name] -= 1
             if self.card_count[card.name] == 0:
                 del self.card_count[card.name]
@@ -262,7 +265,7 @@ class Player:
             index = input("Number[1/2/3]: ")
         
         return int(index)-1, self.board[int(index)-1]
-         
+
 
         
     def choose_hand_card(self):
@@ -457,6 +460,8 @@ class Player:
             if action == '1': # Attack
                 print("Choose Attacking Monster")
                 i, c = self.choose_board_card()
+                os.system("clear")
+                phase.display(player, bot)
 
                 ### END GAME EARLY WHEN YOU OR OPPONENT REACHES 0 LP
 
@@ -488,7 +493,8 @@ class Player:
                     while index > len(bot.board):
                         print("Opponent doesn't have that many cards")
                         index = int(input("Number[1/2/3]: "))
-                    
+                    os.system("clear")
+                    phase.display(player, bot)
                     i = index - 1
                     target = bot.board[i]
                     destroyed, dmg = self.damage_calc(c, target)
