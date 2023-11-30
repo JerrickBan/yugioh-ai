@@ -62,12 +62,12 @@ print("Rules:")
 print("  1. Players start with 5 cards in their hand\n")
 print("  2. There are 5 Phases of play: Draw, Standby, Main, Battle, and End")
 print("\tDraw: Draw 1 card except on turn #1")
-print("\tStanby Phase: Ignore it")
+print("\tStanby Phase: Ignore it for simplicity")
 print("\tMain Phase: Do all your actions (more info next page)")
 print("\tBattle Phase: Attack your opponent or their monsters. Can't attack on turn #1.")
-print("\tEnd Phase: Ignore it\n")
+print("\tEnd Phase: Ignore it for simplicity\n")
 print("  3. Each player's board has 3 monster zones\n")
-print("  4. Hand sizes for simplicity sake is unlimited")
+print("  4. Hand sizes for simplicity sake is unlimited\n")
 print("  5. Each player starts with 4000 life points\n")
 print("  6. To win the game, your opponent's life points must reach 0 must or they run out of cards in their deck\n")
 
@@ -77,12 +77,16 @@ while s != 'n':
     s = input("Type 'n' to continue to Main Phase Rules: ")
 
 os.system("clear")
-print("Main Phase Actions:")
+print("Main Phase Rules:\n")
+print("Actions:")
 print("  1. Normal summon: Place card in face-up attack position (verticle)")
-print("  \t1.5. Levels 5-6 monsters need 1 monster sacrfice to summon; Levels 7+ needs 2\n")
+print("  \t1.5. Level 5-6 monsters need 1 monster sacrfice to summon; Level 7+ needs 2\n")
 print("  2. Normal set in face-down defense position (horizontal)\n")
-print("  3. Switch positions: You can change the battle position of each monster max 1 time per turn, except the turn it's summoned.\n    Defense --> Face-Up Attack and Attack --> Face-Up Defense\n")
-
+print("  3. Switch positions: Change monster battle position\n    Defense --> Face-Up Attack and Attack --> Face-Up Defense\n")
+print("Rules:")
+print("  1. Can only normal summon/set 1 monster per turn")
+print("  2. Cannot change monster's position the turn it's summoned")
+print("  3. Each monster can only change position max 1 time per turn\n")
 
 s = input("Type 'n' to continue to Battle Phase Rules: ")
 while s != 'n':
@@ -91,12 +95,14 @@ while s != 'n':
 os.system("clear")
 print("Battle Phase Rules:")
 print("  1. Each ATK-position monster can attack at most 1 time\n")
-print("  2. Cannot attack opponent directly if they have monsters\n")
+print("  2. Can attack opponent directly if they don't have monsters")
+print("    - Opponent loses Life Points = monster's attack\n")
 print("  3. If attacking an ATK-position monster: lower attack is sent to graveyard (both if tie)")
-print("    a) Losing player takes difference in atk as damage\n")
-print("  4. If attacking a DEF-position monster: win if your attack > their defense (do nothing if same)")
-print("    a) If your attack < their defense, you take difference in damage (monster not destroyed)\n")
-print("  5. Direct attacks make opponents take 100% of monsters' attack as damage\n")
+print("    - Losing player takes difference in atk as damage\n")
+print("  4. If attacking a DEF-position monster: compare your attack with their defense")
+print("    - If your attack = their defense: nothing happens")
+print("    - If your attack > their defense: their monster is destroyed. No one takes damage.")
+print("    - If your attack < their defense: no one is destroyed. You take damage from the difference.\n")
 
 
 s = input("Type 'n' to enter Deck Building: ")
@@ -129,7 +135,7 @@ while n != 'n' and n !='l':
 
 # CREATE YOUR OWN DECK
 if n == 'n':
-    
+
     # Selecting the User Deck type
     done = False
     while(not done):
