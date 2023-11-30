@@ -1,0 +1,20 @@
+Overdrive,4,Machine,EARTH,1600,1500,0
+Overdrive,4,Machine,EARTH,1600,1500,0
+Overdrive,4,Machine,EARTH,1600,1500,0
+Mechanicalchaser,4,Machine,DARK,1850,800,0
+Mechanicalchaser,4,Machine,DARK,1850,800,0
+Mechanicalchaser,4,Machine,DARK,1850,800,0
+Woodborg Inpachi,5,Machine,FIRE,500,2500,0
+Woodborg Inpachi,5,Machine,FIRE,500,2500,0
+Cyber-Tech Alligator,5,Machine,WIND,2500,1600,0
+Cyber-Tech Alligator,5,Machine,WIND,2500,1600,0
+Cyber-Tech Alligator,5,Machine,WIND,2500,1600,0
+V-Tiger Jet,4,Machine,LIGHT,1600,1800,0
+V-Tiger Jet,4,Machine,LIGHT,1600,1800,0
+V-Tiger Jet,4,Machine,LIGHT,1600,1800,0
+X-Head Cannon,4,Machine,LIGHT,1800,1500,0
+X-Head Cannon,4,Machine,LIGHT,1800,1500,0
+X-Head Cannon,4,Machine,LIGHT,1800,1500,0
+Battle Footballer,4,Machine,FIRE,1000,2100,0
+Battle Footballer,4,Machine,FIRE,1000,2100,0
+Battle Footballer,4,Machine,FIRE,1000,2100,0

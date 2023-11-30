@@ -115,6 +115,18 @@ class CardData:
     def get_cards_of_attribute(self, info, attr):
         card_pool = self.filter(info, "Race", attr)
         return self.dict_to_cards(card_pool) * 3
+    
+    def load_deck(self, file_name):
+        d = Deck()
+        cards = []
+        fb = open(file_name, 'r')
+        for line in fb:
+            name, level, t, attribute, atk, defense, face = line.strip().split(',')
+            c = MonsterCard(name, level, t, attribute, atk, defense, int(face))
+            cards.append(c)
+        fb.close()
+        d.load_deck(cards)
+        return d
 
 class MonsterCard:
     def __init__(self, name, level, type, attribute, atk, defense, face):
@@ -148,7 +160,6 @@ class MonsterCard:
         return f"{self.name} ({self.level}*,{self.atk}/{self.defense},POS:{position},Face:{self.face.name})"
 
 class Deck:
-
     def __init__(self): # arr: list of card names, info: dictionary for other data about card
         self.cards = collections.deque([]) # stack where last card is top card
         self.card_count = collections.defaultdict(int)
@@ -156,6 +167,13 @@ class Deck:
     def init_deck(self, cards):
         for c in cards:
             self.cards.append(copy.deepcopy(c))
+
+    def load_deck(self, cards):
+        self.cards = collections.deque([])
+        self.card_count = collections.defaultdict(int)
+        for c in cards:
+            self.cards.append(c)
+            self.card_count[c.name] += 1
                 
     def valid_deck_len(self):
         return len(self.cards) >= 20 and len(self.cards) <= 30
@@ -214,6 +232,14 @@ class Deck:
         for name, cnt in self.card_count.items():
             print(f'\t{name}  x{cnt}')
 
+    def save_deck(self, file_name):
+        fb = open(file_name, 'w')
+        for c in self.cards:
+            fb.write(f"{c.name},{c.level},{c.type},{c.attribute},{c.atk},{c.defense},0\n")
+        fb.close()
+
+
+
 class GraveYard:
     def __init__(self):
         self.cards = []
@@ -227,8 +253,7 @@ class GraveYard:
             print(item)
         print("Bottom")
 
-
-# HUMAN PLAYER
+# HUMAN
 class Player:
     def __init__(self, deck: Deck):
         self.MAXSUMMON = 1
@@ -265,8 +290,6 @@ class Player:
             index = input("Number[1/2/3]: ")
         
         return int(index)-1, self.board[int(index)-1]
-
-
         
     def choose_hand_card(self):
         if self.current_summon == self.MAXSUMMON:
@@ -299,7 +322,7 @@ class Player:
             else:
                 print("Card not in Hand")
 
-    def tribute_monsters(self, tribute, phase, player, bot):
+    def tribute_monsters(self, tribute):
         tributed_mons = set()
 
         while len(tributed_mons) < tribute:
@@ -315,14 +338,14 @@ class Player:
         for c in tributed_mons:
             self.grave.add(c)
     
-    def normal(self, card, position, tribute, phase, player, bot): 
+    def normal(self, card, position, tribute): 
         if position == Pos.ATK:
             card.face = Face.Up
             card.pos = Pos.ATK
         else:
             card.face = Face.Down
             card.pos = Pos.DEF
-        self.tribute_monsters(tribute, phase, player, bot)
+        self.tribute_monsters(tribute)
         self.board.append(card)
 
     def damage_calc(self, attacking: MonsterCard, defending: MonsterCard):
@@ -395,7 +418,7 @@ class Player:
                     continue
                 card, tribute = self.choose_hand_card()
                 if card:
-                    self.normal(card, Pos.ATK, tribute, phase, player, bot)
+                    self.normal(card, Pos.ATK, tribute)
 
             elif action == '2': # Normal Set
                 if len(self.board) >= self.MAXBOARDLEN:
@@ -403,7 +426,7 @@ class Player:
                     continue
                 card, tribute = self.choose_hand_card()
                 if card:
-                    self.normal(card, Pos.DEF, tribute, phase, player, bot)
+                    self.normal(card, Pos.DEF, tribute)
 
             elif action == '3': # Change Position
                 if len(self.board) == 0:
@@ -550,7 +573,6 @@ class Player:
             elif action == '2': # Next Phase
                 break
 
-
     def end_phase(self, phase: Phases, player, bot):
         phase.next_phase()
         os.system("clear")
@@ -562,18 +584,14 @@ class Player:
         time.sleep(3)
         phase.next_phase()
         return NO_RESULT
-    
-        
+
 
 # AI PROGRAM!!!!
 '''
-Algorithm:
-    My idea for the robot is to implement a Greedy algorithm, where the ai tries to summon it's largest monster to either protect
-    itself or destroy the player every turn. 
-
-    Examples:
-    If player has monsters that are all greater than bot's hand monsters, bot will normal set it's monster with highest def
-    If player has monsters that are all less than a card in bot's hand monsters, bot will summon greatest of them
+    GOALS:
+    - Wipe out player's strongest cards
+    - More cards on field better than less but stronger cards on field
+    - Play defensively and Protect Life Points
 '''
 class Bot(Player):
     def __init__(self, deck: Deck):
@@ -597,20 +615,6 @@ class Bot(Player):
         if card.level > 6: return 2
         else: return 0
 
-    def num_tribute_mons_hand(self):
-        cnt = 0
-        for card in self.hand:
-            if card.level > 4:
-                cnt+=1
-        return cnt
-
-    def num_non_tribute_mons_hand(self):
-        cnt = 0
-        for card in self.hand:
-            if card.level <= 4:
-                cnt+=1
-        return cnt
-
     def four_lower_hand(self):
         return len([c for c in self.hand if c.level <= 4]) > 0
     
@@ -622,15 +626,6 @@ class Bot(Player):
     
     def greater_def(self, botcard: MonsterCard, playercard: MonsterCard):
         return True if botcard.defense > playercard.defense else False
-
-    def bot_board_card_with_smallest_atk(self):
-        if len(self.board) == 0:
-            return None
-        smallest = self.board[0]
-        for c in self.board:
-            if c.atk < smallest.atk:
-                smallest = c
-        return smallest
     
     def bot_board_card_with_smallest_def(self):
         if len(self.board) == 0:
@@ -647,15 +642,6 @@ class Bot(Player):
         largest = self.board[0]
         for c in self.board:
             if c.atk > largest.atk:
-                largest = c
-        return largest
-
-    def bot_board_card_with_largest_def(self):
-        if len(self.board) == 0:
-            return None
-        largest = self.board[0]
-        for c in self.board:
-            if c.defense > largest.defense:
                 largest = c
         return largest
 
@@ -809,33 +795,22 @@ class Bot(Player):
         new_atk = total_curr_atk - atk_minus + atk_plus
         return new_atk > total_curr_atk
 
-    def tribute_set(self, monster):
-        pass
-
-    def summonable_mons(self):
-        return [c for c in self.hand if self.is_summonable(c)]
-
     def summonable_monster_with_greater_atk(self, target):
-        mons = self.summonable_mons()
+        mons = [c for c in self.hand if self.is_summonable(c)]
         for c in mons:
             if c.atk > target:
                 return c
         return None
     
     def summonable_monster_with_greater_def(self, target):
-        mons = self.summonable_mons()
+        mons = [c for c in self.hand if self.is_summonable(c)]
         for c in mons:
             if c.defense > target:
                 return c
         return None
 
+    # AI ALGORITHM FOR MAIN PHASE
     def main_phase(self, phase:Phases, player:Player, bot:Player):
-        '''
-        GOALS:
-        - Wipe out player's strongest cards
-        - More cards on field better than less but stronger cards on field
-        - Play defensively and Protect Life Points
-        '''
         phase.next_phase()
         os.system("clear")
 
@@ -893,8 +868,6 @@ class Bot(Player):
 
         # if bot board doesn't have a higher atk monster on the board:
         else:
-            # filter for summonable monsters in hand (check if board is full too)
-            mons = self.summonable_mons()
             # if there is summonable monster with more atk in hand
             stronger_mon = self.summonable_monster_with_greater_atk(target)
             if stronger_mon:
@@ -930,6 +903,7 @@ class Bot(Player):
                 phase.display(player, bot)
                 time.sleep(3)
 
+    # AI ALGORITHM FOR BATTLE PHASE
     def battle_phase(self, phase: Phases, player:Player, bot:Player):
         phase.next_phase()
         os.system("clear")
@@ -1051,8 +1025,13 @@ class Game:
         self.player.start()
         self.bot.start()
 
+    def countdown(self, t):
+        print("Game starts in:")
+        for i in range(t, 0, -1):
+            print(i)
+            time.sleep(2)
+
     def play(self):
-        self.phase.turn = Turn.OPPONENTS
         os.system("clear")
         while(1):
             res = self.play_turn()
@@ -1120,21 +1099,3 @@ class Game:
                 return done
             # End
             self.bot.end_phase(self.phase, self.player, self.bot) 
-
-
-
-if __name__ == "__main__":
-    card_dict = {
-        "Card": {"Level": 5, "Race": "Dragon", "Attribute": "Fire", "ATK": 2000, "DEF": 1500}
-    }
-
-    card_list = ["Card","Card"]
-    c = CardData()
-    c.name_map = card_dict
-    cards = c.dict_to_cards(card_list)
-
-    d = Deck()
-    d.init_deck(card_list)
-
-    for c in d.cards:
-        print(c)
