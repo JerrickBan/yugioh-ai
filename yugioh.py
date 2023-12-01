@@ -4,6 +4,7 @@ import random
 import os
 from classes import Deck, CardData, Player, Bot, Game
 import copy
+import time
 
 
 ################################################################################
@@ -155,9 +156,9 @@ if n == 'n':
         # Card Selection Menu
         index = 0
         deck = Deck()
-        os.system('clear')
-        print("Actions:\nn: next card\np: previous card\na: add card\nr: remove current card\nd: display deck\nc: clear history\nb: back\nf: finished\ns: save deck")
         while(True):
+            os.system('clear')
+            print("Actions:\nn: next card\np: previous card\na: add card\nr: remove current card\nd: display deck\nc: clear history\nb: back\nf: finished\ns: save deck")
             player_cards[index].display()
 
             #print deck
@@ -172,28 +173,36 @@ if n == 'n':
                     break
                 else:
                     print("Deck must be 20-30 cards!")
-            if option == 'q':
-                break
+                    time.sleep(1)
             elif option == 'a':
-                deck.add_card(copy.deepcopy(player_cards[index]))
+                c = player_cards[index]
+                deck.add_card(copy.deepcopy(c))
+                time.sleep(1)
             elif option == 'r':
-                deck.remove_card(player_cards[index])
+                c = player_cards[index]
+                deck.remove_card(c)
+                time.sleep(1)
+
             elif option == 'n':
                 if index < len(player_cards) - 1:
                     index+=1
-                else: print("At end of cards")
+                else: 
+                    print("At end of cards")
+                    time.sleep(1)
             elif option == 'p':
                 if index > 0:
                     index-=1
-                else: print("At beginning of cards")
-            elif option == 'c':
-                os.system('clear')
-                print("Actions:\nn: next card\np: previous card\na: add card\nr: remove current card\nd: display deck\nc: clear history\nb: back\nf: finished\ns: save deck")
+                else: 
+                    print("At beginning of cards")
+                    time.sleep(1)
             elif option == 'd':
                 deck.print_deck()
+                time.sleep(3)
             elif option == 's':
                 name = input("Filename: ")
                 deck.save_deck(name)
+                print(f"Deck saved to {name}")
+                time.sleep(1)
 
     os.system('clear')
     print("Deck:")

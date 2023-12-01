@@ -182,6 +182,7 @@ class Deck:
         if self.card_count[card.name] < 3:
             self.cards.append(card)
             self.card_count[card.name] += 1
+            print(f"{card.name} was added")
         else:
             print("Only 3 copies per card allowed!")
     
@@ -194,6 +195,7 @@ class Deck:
             self.card_count[card.name] -= 1
             if self.card_count[card.name] == 0:
                 del self.card_count[card.name]
+            print(f"{card.name} was removed")
         else:
             print(f"{card.name} not in deck!")
     
